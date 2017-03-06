@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>D3 Demo</title>
+  <script src="//d3js.org/d3.v4.min.js"></script>
+  <style>
+    .chart {
+      background: lightgray;
+      border: 1px solid black;
+      max-width: 800px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="chart"></div>
+
+<script>
+
+  var margin = { top: 10, right: 20, bottom: 30, left: 30};
+  var width = 400 - margin.left - margin.right;
+  var height = 565 - margin.top - margin.bottom;
+
+  var svg = d3.select('.chart')
+    .append('svg')
+      .attr('width', width + margin.left + margin.right)
+      .attr('height', height + margin.top + margin.bottom)
+      .call(responsivefy)
+    .append('g')
+      .attr('transform', 'translate(' + margin.left + ', ' + margin.top +  ')');
+
+
+  d3.json('../data/scatter_plot.json', function (err, data) {
+
+    // Y Axis
+    var yScale = d3.scaleLinear()
+      // d3.extent accept an array of values and return the boundary as an array
+      .domain(d3.extent(data, d => d.expectancy))
+      .range([height, 0])
+      // Make the axes end on more round numbers than they may otherwise, based on just the data
+      .nice();
+    var yAxis = d3.axisLeft(yScale);
+    svg.call(yAxis);
+
+    // X Axis
+    var xScale = d3.scaleLinear()
+      .domain(d3.extent(data, d => d.cost))
+      .range([0, width])
+      .nice();
+    var xAxis = d3.axisBottom(xScale)
+      .ticks(5);
+    svg
+      .append('g')
+        .attr('transform', `translate(0, ${height})`)
+      .call(xAxis);
+
+    // Set up scale for circles
+    var rScale = d3.scaleSqrt()
+      .domain([0, d3.max(data, d => d.population)])
+      .range([0, 40]);
+
+    // Creating circles
+    var circles = svg
+      .selectAll('.ball')
+      .data(data)
+      .enter()
+      // Create graphic containers for circles
+      .append('g')
+      .attr('class', 'ball')
+      .attr('transform', d => {
+        return `translate(${xScale(d.cost)}, ${yScale(d.expectancy)})`;
+      });
+    circles
+      .append('circle')
+      // x-coordinate of the center, this is the position on the 'g' element
+      .attr('cx', 0)
+      .attr('cy', 0)
+      .attr('r', d => rScale(d.population))
+      .style('fill-opacity', 0.5)
+      .style('fill', 'steelblue');
+
+    // Create text for each circle
+    circles
+      .append('text')
+      .style('text-anchor', 'middle')
+      .style('fill', 'black')
+      .attr('y', 4)
+      .text(d => d.code);
+
+  });
+
+
+
+
+  function responsivefy(svg) {
+    // get container + svg aspect ratio
+    var container = d3.select(svg.node().parentNode),
+        width = parseInt(svg.style("width")),
+        height = parseInt(svg.style("height")),
+        aspect = width / height;
+
+    // add viewBox and preserveAspectRatio properties,
+    // and call resize so that svg resizes on inital page load
+    svg.attr("viewBox", "0 0 " + width + " " + height)
+        .attr("preserveAspectRatio", "xMinYMid")
+        .call(resize);
+
+    // to register multiple listeners for same event type,
+    // you need to add namespace, i.e., 'click.foo'
+    // necessary if you call invoke this function for multiple svgs
+    // api docs: https://github.com/mbostock/d3/wiki/Selections#on
+    d3.select(window).on("resize." + container.attr("id"), resize);
+
+    // get width of container and resize svg to fit it
+    function resize() {
+        var targetWidth = parseInt(container.style("width"));
+        svg.attr("width", targetWidth);
+        svg.attr("height", Math.round(targetWidth / aspect));
+    }
+  }
+
+
+</script>
+
+</body>
+</html>

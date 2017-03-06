@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>D3 Demo</title>
+  <script src="//d3js.org/d3.v4.min.js"></script>
+  <style>
+    .chart {
+      background: lightgray;
+      border: 1px solid black;
+      max-width: 800px;
+    }
+    .chart rect {
+      fill: steelblue;
+    }
+    .chart rect:hover {
+      fill: turquoise;
+    }
+  </style>
+</head>
+<body>
+
+<div class="chart"></div>
+
+<script>
+  var margin = { top: 10, right: 20, bottom: 60, left: 30 };
+  var width = 400 - margin.left - margin.right;
+  var height = 565 - margin.top - margin.bottom;
+
+  var data = [
+    {score: 63, subject: 'Mathematics'},
+    {score: 82, subject: 'Geography'},
+    {score: 74, subject: 'Spelling'},
+    {score: 97, subject: 'Reading'},
+    {score: 52, subject: 'Science'},
+    {score: 74, subject: 'Chemistry'},
+    {score: 97, subject: 'Physics'},
+    {score: 52, subject: 'ASL'}
+  ];
+
+  var svg = d3.select('.chart')
+    .append('svg')
+      .attr('width', width + margin.left + margin.right)
+      .attr('height', height + margin.top + margin.bottom)
+      .call(responsivefy)
+    .append('g')
+      .attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
+
+  // Y-axis
+  var yScale = d3.scaleLinear()
+    .domain([0, 100])
+    .range([height, 0]);
+  var yAxis = d3.axisLeft(yScale);
+  svg.call(yAxis);
+
+  // X-axis
+  var xScale = d3.scaleBand()         // Use band scale for bar chart and column chart
+    .padding(0.2)                     // Unique to 'scaleBand', range is (0 - 1)
+    // .align(0)                      // (0 - 1), 0 will align everything to left, 1 to right
+    .domain(data.map(d => d.subject)) // Hold all the values that could be plotted
+    .range([0, width]);
+  var xAxis = d3.axisBottom(xScale)
+    .ticks(5)
+    .tickSize(10)
+    .tickPadding(5);
+
+
+  svg
+    .append('g')
+      .attr('transform', `translate(0, ${height})`)
+    .call(xAxis)
+    .selectAll('text')
+    .style('text-anchor', 'end')
+    .attr('transform', 'rotate(-45)'); // Rotate the label text
+
+
+  // Do Data Join
+  svg.selectAll('rect')
+    .data(data)
+    .enter()     // Enter selection: have data but no DOM element
+    .append('rect')
+    .attr('x', d => xScale(d.subject))
+    .attr('y', d => yScale(d.score))
+    .attr('width', d => xScale.bandwidth()) // Internally calculated value that will set the width of the band
+                                            // Unique to band scales
+    .attr('height', d => height - yScale(d.score));
+    // .style('fill', 'steelblue');
+
+
+
+
+  function responsivefy(svg) {
+    // get container + svg aspect ratio
+    var container = d3.select(svg.node().parentNode),
+        width = parseInt(svg.style("width")),
+        height = parseInt(svg.style("height")),
+        aspect = width / height;
+    // add viewBox and preserveAspectRatio properties,
+    // and call resize so that svg resizes on inital page load
+    svg.attr("viewBox", "0 0 " + width + " " + height)
+        .attr("preserveAspectRatio", "xMinYMid")
+        .call(resize);
+    // to register multiple listeners for same event type,
+    // you need to add namespace, i.e., 'click.foo'
+    // necessary if you call invoke this function for multiple svgs
+    // api docs: https://github.com/mbostock/d3/wiki/Selections#on
+    d3.select(window).on("resize." + container.attr("id"), resize);
+    // get width of container and resize svg to fit it
+    function resize() {
+        var targetWidth = parseInt(container.style("width"));
+        svg.attr("width", targetWidth);
+        svg.attr("height", Math.round(targetWidth / aspect));
+    }
+  }
+
+</script>
+
+</body>
+</html>
